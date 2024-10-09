@@ -1,8 +1,8 @@
 <div align="center">
 
 # D-PoSE: Depth as an Intermediate Representation for 3D Human Pose and Shape Estimation
-## Pre-Print
-![model image](assets/arch.png)
+## [Pre-Print](https://arxiv.org/abs/2410.04889)
+![model image](assets/arch_new.png)
 ## Install
 Create a virtual environment and install all the requirements
 ```
@@ -24,6 +24,7 @@ cd dpose
 
 
 ## Evaluation
+Checkpoint and more instructions coming soon.
 Default dataset for evauluation is 3DPW.
 Change dpose_conf.yaml VAL_DS value to change the testing dataset.
 ```
@@ -40,11 +41,19 @@ Change dpose_conf.yaml VAL_DS value to change the testing dataset.
 ![qual image](assets/qual.png)
 # Citation
 ```
-...
+@misc{vasilikopoulos2024dposedepthintermediaterepresentation,
+      title={D-PoSE: Depth as an Intermediate Representation for 3D Human Pose and Shape Estimation}, 
+      author={Nikolaos Vasilikopoulos and Drosakis Drosakis and Antonis Argyros},
+      year={2024},
+      eprint={2410.04889},
+      archivePrefix={arXiv},
+      primaryClass={cs.CV},
+      url={https://arxiv.org/abs/2410.04889}, 
+}
 ```
 
 
 # References
-We benefit from many great resources including but not limited to [BEDLAM](https://github.com/pixelite1201/BEDLAM)[SMPL-X](https://smpl-x.is.tue.mpg.de/), [SMPL](https://smpl.is.tue.mpg.de), [PARE](https://gitlab.tuebingen.mpg.de/mkocabas/projects/-/tree/master/pare),[ReFit](https://github.com/yufu-wang/ReFit) ,[CLIFF](https://github.com/huawei-noah/noah-research/tree/master/CLIFF), [AGORA](https://agora.is.tue.mpg.de), [PIXIE](https://pixie.is.tue.mpg.de), [HRNet](https://github.com/leoxiaobin/deep-high-resolution-net.pytorch).
+We benefit from many great resources including but not limited to [BEDLAM](https://github.com/pixelite1201/BEDLAM),[SMPL-X](https://smpl-x.is.tue.mpg.de/), [SMPL](https://smpl.is.tue.mpg.de), [PARE](https://gitlab.tuebingen.mpg.de/mkocabas/projects/-/tree/master/pare),[ReFit](https://github.com/yufu-wang/ReFit) ,[CLIFF](https://github.com/huawei-noah/noah-research/tree/master/CLIFF), [AGORA](https://agora.is.tue.mpg.de), [PIXIE](https://pixie.is.tue.mpg.de), [HRNet](https://github.com/leoxiaobin/deep-high-resolution-net.pytorch).
 
 
