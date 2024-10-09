@@ -54,6 +54,6 @@ Change dpose_conf.yaml VAL_DS value to change the testing dataset.
 
 
 # References
-We benefit from many great resources including but not limited to [BEDLAM](https://github.com/pixelite1201/BEDLAM),[SMPL-X](https://smpl-x.is.tue.mpg.de/), [SMPL](https://smpl.is.tue.mpg.de), [PARE](https://gitlab.tuebingen.mpg.de/mkocabas/projects/-/tree/master/pare),[ReFit](https://github.com/yufu-wang/ReFit) ,[CLIFF](https://github.com/huawei-noah/noah-research/tree/master/CLIFF), [AGORA](https://agora.is.tue.mpg.de), [PIXIE](https://pixie.is.tue.mpg.de), [HRNet](https://github.com/leoxiaobin/deep-high-resolution-net.pytorch).
+We benefit from many great resources including but not limited to [BEDLAM](https://github.com/pixelite1201/BEDLAM),[SMPL-X](https://smpl-x.is.tue.mpg.de/),[TokenHMR](https://github.com/saidwivedi/TokenHMR),[SMPL](https://smpl.is.tue.mpg.de), [PARE](https://gitlab.tuebingen.mpg.de/mkocabas/projects/-/tree/master/pare),[ReFit](https://github.com/yufu-wang/ReFit) ,[CLIFF](https://github.com/huawei-noah/noah-research/tree/master/CLIFF), [AGORA](https://agora.is.tue.mpg.de), [PIXIE](https://pixie.is.tue.mpg.de), [HRNet](https://github.com/leoxiaobin/deep-high-resolution-net.pytorch).
 
 
