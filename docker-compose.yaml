@@ -1,0 +1,20 @@
+version: '3.8'
+services:
+  bedlam-depth:
+    container_name: dpose-0
+    image: dpose
+    command: tail -f /dev/null
+    volumes:
+      - .:/app/dpose
+      - /scratch/spare/nvasilik/data:/app/dpose/data
+    shm_size: 400G
+    deploy:
+      resources:
+        limits:
+          cpus: '64'
+          memory: 400G
+        reservations:
+          devices:
+            - driver: nvidia
+              capabilities: [gpu]
+              device_ids: ['0']
