@@ -41,14 +41,11 @@ Change dpose_conf.yaml VAL_DS value to change the testing dataset.
 ![qual image](assets/qual.png)
 # Citation
 ```
-@misc{vasilikopoulos2024dposedepthintermediaterepresentation,
-      title={D-PoSE: Depth as an Intermediate Representation for 3D Human Pose and Shape Estimation}, 
-      author={Nikolaos Vasilikopoulos and Drosakis Drosakis and Antonis Argyros},
-      year={2024},
-      eprint={2410.04889},
-      archivePrefix={arXiv},
-      primaryClass={cs.CV},
-      url={https://arxiv.org/abs/2410.04889}, 
+@article{vasilikopoulos2024d,
+  title={D-PoSE: Depth as an Intermediate Representation for 3D Human Pose and Shape Estimation},
+  author={Vasilikopoulos, Nikolaos and Drosakis, Drosakis and Argyros, Antonis},
+  journal={arXiv preprint arXiv:2410.04889},
+  year={2024}
 }
 ```
 
