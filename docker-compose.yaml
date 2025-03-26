@@ -6,15 +6,20 @@ services:
     command: tail -f /dev/null
     volumes:
       - .:/app/dpose
-      - /scratch/spare/nvasilik/data:/app/dpose/data
+      #- /scratch/spare/nvasilik/data:/app/dpose/data
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - /dev/video0:/dev/video0
     shm_size: 400G
     deploy:
       resources:
         limits:
-          cpus: '64'
-          memory: 400G
+          cpus: '12'
+          memory: 64G
         reservations:
           devices:
             - driver: nvidia
               capabilities: [gpu]
               device_ids: ['0']
+    privileged: true
+    environment:
+      - DISPLAY=$DISPLAY 

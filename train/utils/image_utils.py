@@ -156,9 +156,49 @@ def transform(pt, center, scale, res, invert=0, rot=0):
     new_pt = np.array([pt[0] - 1, pt[1] - 1, 1.]).T
     new_pt = np.dot(t, new_pt)
     return new_pt[:2].astype(int) + 1
-
-
 def crop(img, center, scale, res, rot=0):
+    """Crop image according to the supplied bounding box."""
+    # Calculate upper-left and bottom-right coordinates
+    ul = np.array(transform([1, 1], center, scale, res, invert=1)) - 1
+    br = np.array(transform([res[0] + 1, res[1] + 1], center, scale, res, invert=1)) - 1
+
+    # Padding to account for rotation
+    pad = int(np.linalg.norm(br - ul) / 2 - (br[1] - ul[1]) / 2)
+    
+    if rot != 0:
+        ul -= pad
+        br += pad
+
+    # Calculate the crop size (height, width)
+    new_shape = [int(br[1] - ul[1]), int(br[0] - ul[0])]
+    if len(img.shape) > 2:
+        new_shape.append(img.shape[2])
+
+    # Initialize the cropped image (using np.zeros ensures that out-of-bounds areas are filled with zeros)
+    new_img = np.zeros(new_shape, dtype=img.dtype)
+
+    # Calculate the valid ranges for cropping (in both source and target images)
+    new_x_range = max(0, -ul[0]), min(br[0], img.shape[1]) - ul[0]
+    new_y_range = max(0, -ul[1]), min(br[1], img.shape[0]) - ul[1]
+
+    old_x_range = max(0, ul[0]), min(img.shape[1], br[0])
+    old_y_range = max(0, ul[1]), min(img.shape[0], br[1])
+
+    # Copy the relevant region of the original image into the cropped image
+    new_img[new_y_range[0]:new_y_range[1], new_x_range[0]:new_x_range[1]] = img[old_y_range[0]:old_y_range[1], old_x_range[0]:old_x_range[1]]
+
+    # Rotate the cropped image if necessary
+    if rot != 0:
+        new_img = cv2.rotate(new_img, cv2.ROTATE_90_CLOCKWISE)  # OpenCV rotation method (for 90, 180, 270 degrees)
+        # For arbitrary rotations, use `cv2.getRotationMatrix2D` and `cv2.warpAffine`
+        # but this is more computationally expensive and needs careful handling of the center and angle
+
+    # Resize the image to the target resolution using OpenCV (which is faster than scipy)
+    new_img = cv2.resize(new_img, (res[1], res[0]))  # OpenCV uses (width, height) in resize
+
+    return new_img
+
+def _crop(img, center, scale, res, rot=0):
     """Crop image according to the supplied bounding box."""
     # Upper left point
 

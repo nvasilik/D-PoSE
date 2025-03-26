@@ -6,6 +6,8 @@ import tqdm
 import matplotlib.pyplot as plt
 from loguru import logger
 import numpy as np
+import time
+
 from . import constants
 from multi_person_tracker import MPT
 from torchvision.transforms import Normalize
@@ -30,6 +32,7 @@ class Tester:
         self.smplx_cam_head = SMPLXCamHead(img_res=self.model_cfg.DATASET.IMG_RES).to(self.device)
         self._load_pretrained_model()
         self.model.eval()
+        self.renderer = Renderer(focal_length=1468.6047, img_w=1280, img_h=720, faces=self.smplx_cam_head.smplx.faces, same_mesh_color=False)
 
     def _build_model(self):
         self.hparams = self.model_cfg
@@ -119,10 +122,10 @@ class Tester:
 
                 focal_length = (img_w * img_w + img_h * img_h) ** 0.5
                 pred_vertices_array = (hmr_output['vertices'] + hmr_output['pred_cam_t'].unsqueeze(1)).detach().cpu().numpy()
-                renderer = Renderer(focal_length=focal_length[0], img_w=img_w[0], img_h=img_h[0],
-                                    faces=self.smplx_cam_head.smplx.faces,
-                                    same_mesh_color=False)
-                front_view = renderer.render_front_view(pred_vertices_array,
+                #renderer = Renderer(focal_length=focal_length[0], img_w=img_w[0], img_h=img_h[0],
+                #                    faces=self.smplx_cam_head.smplx.faces,
+                #                    same_mesh_color=False)
+                front_view = self.renderer.render_front_view(pred_vertices_array,
                                                         bg_img_rgb=img.copy())
 
                 # save rendering results
@@ -131,9 +134,9 @@ class Tester:
                 filename_orig = basename + "orig_%s.jpg" % 'bedlam'
                 front_view_path = os.path.join(output_folder, filename)
                 orig_path = os.path.join(output_folder, filename_orig)
+                cv2.imwrite(front_view_path, front_view[:, :, ::-1])
                 logger.info(f'Writing output files to {output_folder}')
                 '''
-                cv2.imwrite(front_view_path, front_view[:, :, ::-1])
                 cv2.imwrite(orig_path, img[:, :, ::-1])
                 #import ipdb; ipdb.set_trace()
                 cv2.imwrite(os.path.join(output_folder, filename + "depth.jpg"), orig_depth[0].detach().cpu().numpy().reshape(orig_depth.shape[2],orig_depth.shape[3])*255)
@@ -145,8 +148,144 @@ class Tester:
                 #cv2.imwrite(os.path.join(output_folder, filename + "segmentation.jpg"), segmentation)
                 #import ipdb; ipdb.set_trace()
                 '''
-                renderer.delete()
+                #renderer.delete()
+    @torch.no_grad()
+    def _run_on_single_image_tensor(self, image_tensor,detections):
+        dets = detections
 
+
+        img = image_tensor#.transpose(1,0,2)
+        orig_height, orig_width = img.shape[:2]
+        if len(dets[0])>0:
+            dets = dets[0]
+        inp_images = torch.zeros(len(dets), 3, self.model_cfg.DATASET.IMG_RES,
+                                         self.model_cfg.DATASET.IMG_RES, device=self.device, dtype=torch.float)
+
+        batch_size = inp_images.shape[0]
+       # import ipdb; ipdb.set_trace()
+        bbox_scale = []
+        bbox_center = []
+        for det_idx, det in enumerate(dets):
+            #import ipdb; ipdb.set_trace()
+            bbox = det#[0]
+            bbox_scale.append(bbox[2] / 200.)
+            bbox_center.append([bbox[0], bbox[1]])
+            rgb_img = crop(img, bbox_center[-1], bbox_scale[-1],[self.model_cfg.DATASET.IMG_RES, self.model_cfg.DATASET.IMG_RES])
+            rgb_img = np.transpose(rgb_img.astype('float32'), (2, 0, 1)) / 255.0
+            rgb_img = torch.from_numpy(rgb_img)
+            norm_img = self.normalize_img(rgb_img)
+            inp_images[det_idx] = norm_img.float().to(self.device)
+
+        bbox_center = torch.tensor(bbox_center).cuda().float()
+        bbox_scale = torch.tensor(bbox_scale).cuda().float()
+        img_h = torch.tensor(orig_height).repeat(batch_size).cuda().float()
+        img_w = torch.tensor(orig_width).repeat(batch_size).cuda().float()
+        focal_length = ((img_w * img_w + img_h * img_h) ** 0.5).cuda().float()
+            
+        hmr_output,orig_depth,_,_,segmentation = self.model(inp_images, bbox_center=bbox_center, bbox_scale=bbox_scale, img_w=img_w, img_h=img_h)
+        focal_length = (img_w * img_w + img_h * img_h) ** 0.5
+        pred_vertices_array = (hmr_output['vertices'] + hmr_output['pred_cam_t'].unsqueeze(1)).detach().cpu().numpy()
+        #import ipdb; ipdb.set_trace()
+        #renderer = Renderer(focal_length=focal_length[0], img_w=img_w[0], img_h=img_h[0],
+        #                            faces=self.smplx_cam_head.smplx.faces,
+        #                            same_mesh_color=False)
+        front_view = self.renderer.render_front_view(pred_vertices_array,
+                                                        bg_img_rgb=img.copy())
+        cv2.imshow('front', front_view[:, :, ::-1])
+        #start = time.time()
+        #side_view = renderer.render_side_view(pred_vertices_array)
+        #end = time.time()
+        #final_time = end-start
+        #print("Time taken to render side view: ", final_time)
+                # save rendering results
+        #cv2.imshow('side', side_view[:, :, ::-1])
+        '''
+                cv2.imwrite(front_view_path, front_view[:, :, ::-1])
+                cv2.imwrite(orig_path, img[:, :, ::-1])
+                #import ipdb; ipdb.set_trace()
+                cv2.imwrite(os.path.join(output_folder, filename + "depth.jpg"), orig_depth[0].detach().cpu().numpy().reshape(orig_depth.shape[2],orig_depth.shape[3])*255)
+                segmentation = segmentation[0].detach().cpu().numpy()
+                segmentation = np.argmax(segmentation, axis=0)
+                plt.imshow(segmentation, cmap='viridis')
+                plt.axis('off')
+                plt.savefig(os.path.join(output_folder, filename + "segmentation.jpg"))
+                #cv2.imwrite(os.path.join(output_folder, filename + "segmentation.jpg"), segmentation)
+                #import ipdb; ipdb.set_trace()
+        '''
+        #renderer.delete()
+        
+    @torch.no_grad()
+    def run_on_single_image_tensor(self, image_tensor, detections):
+        dets = detections
+
+        # Load the image tensor and get its dimensions
+        img = image_tensor
+        orig_height, orig_width = img.shape[:2]
+
+        if len(dets[0]) > 0:
+            dets = dets[0]
+
+        # Create tensor for batch of images
+        batch_size = len(dets)
+        inp_images = torch.zeros(batch_size, 3, self.model_cfg.DATASET.IMG_RES, self.model_cfg.DATASET.IMG_RES, device=self.device, dtype=torch.float)
+
+        # Precompute bbox scale and center for all detections
+        bbox_scale = torch.tensor([det[2] / 200. for det in dets], device=self.device)
+        bbox_center = torch.tensor([[det[0], det[1]] for det in dets], device=self.device)
+
+        # Precompute image width and height tensors
+        img_h = torch.tensor([orig_height] * batch_size, device=self.device, dtype=torch.float)
+        img_w = torch.tensor([orig_width] * batch_size, device=self.device, dtype=torch.float)
+        
+        # Calculate focal length once
+        #focal_length = torch.sqrt(img_w ** 2 + img_h ** 2).to(self.device)
+        bbox_centers_np = bbox_center.cpu().numpy()
+        bbox_scales_np = bbox_scale.cpu().numpy()
+
+        # Crop images in a vectorized manner using list comprehension
+        cropped_imgs = [
+            np.transpose(
+                crop(
+                    img,
+                    bbox_centers_np[i],
+                    bbox_scales_np[i],
+                    [self.model_cfg.DATASET.IMG_RES, self.model_cfg.DATASET.IMG_RES]
+                ).astype('float32'),
+                (2, 0, 1)
+            ) / 255.0
+            for i in range(len(dets))
+        ]
+
+        # Stack into one tensor and move to device
+        inp_images = torch.from_numpy(np.stack(cropped_imgs)).to(self.device)
+
+        # Apply normalization to the entire batch at once
+        inp_images = self.normalize_img(inp_images)
+
+        # Pass the batch through the model
+        hmr_output, orig_depth, _, _, segmentation = self.model(
+            inp_images, 
+            bbox_center=bbox_center, 
+            bbox_scale=bbox_scale, 
+            img_w=img_w, 
+            img_h=img_h
+        )
+
+        # Compute vertices array and render front view
+        pred_vertices_array = (hmr_output['vertices'] + hmr_output['pred_cam_t'].unsqueeze(1)).detach().cpu().numpy()
+        #import ipdb; ipdb.set_trace()
+        #renderer = Renderer(
+        #    focal_length=focal_length[0], 
+        #    img_w=img_w[0], 
+        #    img_h=img_h[0],
+        #    faces=self.smplx_cam_head.smplx.faces,
+        #    same_mesh_color=False
+        #)
+        
+        front_view = self.renderer.render_front_view(pred_vertices_array, bg_img_rgb=img.copy())
+        cv2.imshow('front', front_view[:, :, ::-1])
+        #side_view = self.renderer.render_side_view(pred_vertices_array)
+        #cv2.imshow('side', side_view[:, :, ::-1])
     @torch.no_grad()
     def run_on_hbw_folder(self, all_image_folder, detections, output_folder, data_split='test', visualize_proj=True):
         img_names = []

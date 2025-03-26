@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-
+import numpy as np
 from .head.refit_regressor import Regressor
 from .head.smplx_cam_head import SMPLXCamHead
 
@@ -8,7 +8,7 @@ from .head.keypoint_attention import KeypointAttention
 from ..core.config import PRETRAINED_CKPT_FOLDER
 from .head.unet_advanced import UNET
 from .backbone.hrnet import hrnet_w32, hrnet_w48
-
+from ..utils.one_euro_filter import OneEuroFilter
 class HMR(nn.Module):
     def __init__(
             self,
@@ -43,6 +43,13 @@ class HMR(nn.Module):
             self.segmentation_decoder = UNET(depth=False)
             self.attention = KeypointAttention()
             self.avg_pool_cam_shape = nn.AdaptiveAvgPool2d((768,1))
+        self.min_cutoff=0.004
+        self.beta=0.7
+        self.t = 0
+        self.one_euro_pose = None
+        self.one_euro_shape = None#OneEuroFilter(np.zeros(10), min_cutoff=min_cutoff, beta=beta)
+        self.one_euro_cam = None#OneEuroFilter(np.zeros(3), min_cutoff=min_cutoff, beta=beta)
+        self.use_one_euro = False
 
     def forward(
             self,
@@ -109,6 +116,21 @@ class HMR(nn.Module):
 
         if self.hparams.TRIAL.bedlam_bbox:
             # Assuming prediction are in camera coordinate
+            #if first time, initialize one euro filter
+            if self.one_euro_cam is None and self.use_one_euro:
+                self.one_euro_cam = OneEuroFilter(np.zeros_like(hmr_output['pred_cam'][0].cpu()), hmr_output['pred_cam'][0].cpu().numpy(), min_cutoff=self.min_cutoff, beta=self.beta)
+                self.one_euro_pose = OneEuroFilter(np.zeros_like(hmr_output['pred_pose'][0].cpu()), hmr_output['pred_pose'][0].cpu().numpy(), min_cutoff=self.min_cutoff, beta=self.beta)
+                self.one_euro_shape = OneEuroFilter(np.zeros_like(hmr_output['pred_shape'][0].cpu()), hmr_output['pred_shape'][0].cpu().numpy(), min_cutoff=self.min_cutoff, beta=self.beta)
+            #filter the output
+            if self.use_one_euro:
+                self.t+=1
+                t_pose = np.ones_like(hmr_output['pred_pose'][0].cpu()) * self.t
+                t_shape = np.ones_like(hmr_output['pred_shape'][0].cpu()) * self.t
+                t_cam = np.ones_like(hmr_output['pred_cam'][0].cpu()) * self.t
+                #import ipdb; ipdb.set_trace()
+                hmr_output['pred_cam'] = torch.tensor(self.one_euro_cam(t_cam,hmr_output['pred_cam'].cpu().numpy())).cuda()
+                hmr_output['pred_pose'] = torch.tensor(self.one_euro_pose(t_pose,hmr_output['pred_pose'].cpu().numpy())).cuda()
+                hmr_output['pred_shape'] = torch.tensor(self.one_euro_shape(t_shape,hmr_output['pred_shape'].cpu().numpy())).cuda()
             smpl_output = self.smpl(
                 rotmat=hmr_output['pred_pose'],
                 shape=hmr_output['pred_shape'],
