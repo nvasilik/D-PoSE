@@ -62,7 +62,7 @@ def main(args):
         device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
         mot = MPT(
             device=device,
-            batch_size=1,
+            batch_size=4,
             display=False,
             detector_type='yolo',
             output_format='dict',
@@ -71,10 +71,11 @@ def main(args):
 
         cap = cv2.VideoCapture(0)
         cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
-        cap.set(cv2.CAP_PROP_FPS,20)
+        cap.set(cv2.CAP_PROP_FPS,15)
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
         frameNumber = 0
+        use_bbox_filter = False
         while True:
           frameNumber+=1
           if True:#frameNumber%2==0:
@@ -87,7 +88,10 @@ def main(args):
             # Concatenate boxes and scores from all predictions at once
             if detection:
                 #import ipdb; ipdb.set_trace()
-                boxes = torch.cat([smooth_bbox_params(pred['boxes']) for pred in detection], dim=0)
+                if use_bbox_filter:
+                    boxes = torch.cat([smooth_bbox_params(pred['boxes']) for pred in detection], dim=0)
+                else:
+                    boxes = torch.cat([pred['boxes'] for pred in detection], dim=0)
                 scores = torch.cat([pred['scores'] for pred in detection], dim=0)
                 # Apply threshold in a vectorized way
                 mask = scores > 0.7
