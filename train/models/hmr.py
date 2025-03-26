@@ -49,7 +49,7 @@ class HMR(nn.Module):
         self.one_euro_pose = None
         self.one_euro_shape = None#OneEuroFilter(np.zeros(10), min_cutoff=min_cutoff, beta=beta)
         self.one_euro_cam = None#OneEuroFilter(np.zeros(3), min_cutoff=min_cutoff, beta=beta)
-        self.use_one_euro = False
+        self.use_one_euro = True
 
     def forward(
             self,

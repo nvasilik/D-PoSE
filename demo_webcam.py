@@ -15,8 +15,34 @@ from torch.utils.data import DataLoader
 os.environ['PYOPENGL_PLATFORM'] = 'egl'
 #os.environ["DISPLAY"] = ":0"e
 sys.path.append('')
+import scipy.signal as signal
+from scipy.ndimage.filters import gaussian_filter1d
 
+def smooth_bbox_params(bbox_params, kernel_size=11, sigma=8):
+    """
+    Applies median filtering and then gaussian filtering to bounding box
+    parameters.
 
+    Args:
+        bbox_params (torch.Tensor or np.ndarray): Shape (N, 4) with [x1, y1, x2, y2].
+        kernel_size (int): Kernel size for median filtering (must be odd).
+        sigma (float): Sigma for gaussian smoothing.
+
+    Returns:
+        torch.Tensor: Smoothed bounding box parameters (N, 4).
+    """
+    if isinstance(bbox_params, torch.Tensor):
+        bbox_params = bbox_params.cpu().numpy()  # Convert to NumPy for processing
+
+    # Ensure we have at least kernel_size elements to avoid zero-padding warning
+    if bbox_params.shape[0] < kernel_size:
+        kernel_size = max(1, bbox_params.shape[0] // 2 * 2 + 1)  # Keep kernel size odd
+
+    # Apply median and Gaussian filtering
+    smoothed = np.array([signal.medfilt(param, kernel_size) for param in bbox_params.T]).T
+    smoothed = np.array([gaussian_filter1d(traj, sigma) for traj in smoothed.T]).T
+
+    return torch.tensor(smoothed, dtype=torch.float32, device='cpu') 
 def main(args):
 
     input_image_folder = args.image_folder
@@ -60,7 +86,8 @@ def main(args):
 
             # Concatenate boxes and scores from all predictions at once
             if detection:
-                boxes = torch.cat([pred['boxes'] for pred in detection], dim=0)
+                #import ipdb; ipdb.set_trace()
+                boxes = torch.cat([smooth_bbox_params(pred['boxes']) for pred in detection], dim=0)
                 scores = torch.cat([pred['scores'] for pred in detection], dim=0)
                 # Apply threshold in a vectorized way
                 mask = scores > 0.7
@@ -111,7 +138,7 @@ if __name__ == '__main__':
     parser.add_argument('--display', action='store_true',
                         help='visualize the 3d body projection on image')
 
-    parser.add_argument('--detector', type=str, default='maskrcnn', choices=['yolo', 'maskrcnn'],
+    parser.add_argument('--detector', type=str, default='yolo', choices=['yolo', 'maskrcnn'],
                         help='object detector to be used for bbox tracking')
 
     parser.add_argument('--yolo_img_size', type=int, default=416,
