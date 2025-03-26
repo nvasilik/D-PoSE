@@ -7,6 +7,7 @@ import cv2
 from loguru import logger
 from glob import glob
 from train.core.tester import Tester
+from train.utils.one_euro_filter import OneEuroFilter
 from multi_person_tracker import MPT
 from multi_person_tracker import Sort
 #Dataloader
@@ -15,6 +16,7 @@ from torch.utils.data import DataLoader
 os.environ['PYOPENGL_PLATFORM'] = 'egl'
 #os.environ["DISPLAY"] = ":0"e
 sys.path.append('')
+'''
 import scipy.signal as signal
 from scipy.ndimage.filters import gaussian_filter1d
 
@@ -43,6 +45,7 @@ def smooth_bbox_params(bbox_params, kernel_size=11, sigma=8):
     smoothed = np.array([gaussian_filter1d(traj, sigma) for traj in smoothed.T]).T
 
     return torch.tensor(smoothed, dtype=torch.float32, device='cpu') 
+'''
 def main(args):
 
     input_image_folder = args.image_folder
@@ -55,6 +58,12 @@ def main(args):
         colorize=False,
     )
     logger.info(f'Demo options: \n {args}')
+    bbox_one_euro_filter = OneEuroFilter(
+        np.zeros(4),
+        np.zeros(4),
+        min_cutoff=0.004,
+        beta=0.4,
+    )
 
     tester = Tester(args)
     if True:
@@ -88,8 +97,9 @@ def main(args):
             # Concatenate boxes and scores from all predictions at once
             if detection:
                 #import ipdb; ipdb.set_trace()
+                t = torch.ones(4) * frameNumber
                 if use_bbox_filter:
-                    boxes = torch.cat([smooth_bbox_params(pred['boxes']) for pred in detection], dim=0)
+                    boxes = torch.cat([bbox_one_euro_filter(t,pred['boxes']) for pred in detection], dim=0)
                 else:
                     boxes = torch.cat([pred['boxes'] for pred in detection], dim=0)
                 scores = torch.cat([pred['scores'] for pred in detection], dim=0)

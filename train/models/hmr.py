@@ -118,7 +118,7 @@ class HMR(nn.Module):
             # Assuming prediction are in camera coordinate
             #if first time, initialize one euro filter
             if self.one_euro_cam is None and self.use_one_euro:
-                self.one_euro_cam = OneEuroFilter(np.zeros_like(hmr_output['pred_cam'][0].cpu()), hmr_output['pred_cam'][0].cpu().numpy(), min_cutoff=0.0004, beta=0.5)
+                self.one_euro_cam = OneEuroFilter(np.zeros_like(hmr_output['pred_cam'][0].cpu()), hmr_output['pred_cam'][0].cpu().numpy(), min_cutoff=self.min_cutoff, beta=self.beta)
                 self.one_euro_pose = OneEuroFilter(np.zeros_like(hmr_output['pred_pose'][0].cpu()), hmr_output['pred_pose'][0].cpu().numpy(), min_cutoff=self.min_cutoff, beta=self.beta)
                 self.one_euro_shape = OneEuroFilter(np.zeros_like(hmr_output['pred_shape'][0].cpu()), hmr_output['pred_shape'][0].cpu().numpy(), min_cutoff=self.min_cutoff, beta=self.beta)
             #filter the output
