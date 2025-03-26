@@ -30,6 +30,8 @@ class OneEuroFilter:
 
         # The filtered derivative of the signal.
         a_d = smoothing_factor(t_e, self.d_cutoff)
+        if self.x_prev.shape != x.shape:
+            return x
         dx = (x - self.x_prev) / t_e
         dx_hat = exponential_smoothing(a_d, dx, self.dx_prev)
 
