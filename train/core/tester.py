@@ -20,8 +20,12 @@ from ..utils.renderer_pyrd import Renderer
 from ..utils.image_utils import crop
 
 
+
+
+
 class Tester:
     def __init__(self, args):
+
         self.args = args
         self.model_cfg = update_hparams(args.cfg)
         self.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
@@ -184,12 +188,12 @@ class Tester:
             
         hmr_output,orig_depth,_,_,segmentation = self.model(inp_images, bbox_center=bbox_center, bbox_scale=bbox_scale, img_w=img_w, img_h=img_h)
         focal_length = (img_w * img_w + img_h * img_h) ** 0.5
-        pred_vertices_array = (hmr_output['vertices'] + hmr_output['pred_cam_t'].unsqueeze(1)).detach().cpu().numpy()
+        pred_vertices_array = (hmr_output['vertices'] + hmr_output['pred_cam_t'].unsqueeze(1))#.detach().cpu().numpy()
         #import ipdb; ipdb.set_trace()
         #renderer = Renderer(focal_length=focal_length[0], img_w=img_w[0], img_h=img_h[0],
         #                            faces=self.smplx_cam_head.smplx.faces,
         #                            same_mesh_color=False)
-        front_view = self.renderer.render_front_view(pred_vertices_array,
+        front_view = self.renderer.render_front_view(np.array(pred_vertices_array),
                                                         bg_img_rgb=img.copy())
         cv2.imshow('front', front_view[:, :, ::-1])
         #start = time.time()
@@ -212,6 +216,7 @@ class Tester:
                 #cv2.imwrite(os.path.join(output_folder, filename + "segmentation.jpg"), segmentation)
                 #import ipdb; ipdb.set_trace()
         '''
+        return hmr_output
         #renderer.delete()
         
     @torch.no_grad()
@@ -272,7 +277,7 @@ class Tester:
         )
 
         # Compute vertices array and render front view
-        pred_vertices_array = (hmr_output['vertices'] + hmr_output['pred_cam_t'].unsqueeze(1)).detach().cpu().numpy()
+        pred_vertices_array = (hmr_output['vertices'] + hmr_output['pred_cam_t'].unsqueeze(1)).cpu().numpy()
         #import ipdb; ipdb.set_trace()
         #renderer = Renderer(
         #    focal_length=focal_length[0], 
@@ -282,8 +287,9 @@ class Tester:
         #    same_mesh_color=False
         #)
         
-        front_view = self.renderer.render_front_view(pred_vertices_array, bg_img_rgb=img.copy())
-        cv2.imshow('front', front_view[:, :, ::-1])
+        front_view = self.renderer.render_front_view(pred_vertices_array, bg_img_rgb=img)
+        cv2.imshow('front', img[:, :, ::-1])
+        return hmr_output
         #side_view = self.renderer.render_side_view(pred_vertices_array)
         #cv2.imshow('side', side_view[:, :, ::-1])
     @torch.no_grad()

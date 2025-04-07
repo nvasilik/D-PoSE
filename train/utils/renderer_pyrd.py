@@ -6,88 +6,59 @@ import numpy as np
 import colorsys
 import cv2
 
-
+#import pyvista as pv
 class Renderer(object):
 
     def __init__(self, focal_length=600, img_w=512, img_h=512, faces=None,
                  same_mesh_color=True):
-        #os.environ['PYOPENGL_PLATFORM'] = 'egl'
+        os.environ['PYOPENGL_PLATFORM'] = 'egl'
         
-        self.renderer = pyrender.OffscreenRenderer(viewport_width=img_w,
-                                                   viewport_height=img_h,
+        self.renderer = pyrender.OffscreenRenderer(viewport_width=1280,
+                                                   viewport_height=720,
                                                    point_size=1.0)
         self.camera_center = [img_w // 2, img_h // 2]
         self.focal_length = focal_length
         self.faces = faces
-        self.same_mesh_color = same_mesh_color
+        self.same_mesh_color = True#same_mesh_color
         self.camera = pyrender.camera.IntrinsicsCamera(fx=focal_length, fy=focal_length,
                                                          cx=self.camera_center[0], cy=self.camera_center[1])
         self.light = pyrender.DirectionalLight(color=[1.0, 1.0, 1.0], intensity=3.0)
         self.light_pose_neg = trimesh.transformations.rotation_matrix(np.radians(4-5), [1, 0, 0])
         self.light_pose_pos = trimesh.transformations.rotation_matrix(np.radians(45), [0, 1, 0])
         self.rot = trimesh.transformations.rotation_matrix(np.radians(180), [1, 0, 0])
+        self.scene = pyrender.Scene(bg_color=(0, 0, 0, 0), ambient_light=np.ones(3) * 0)
+        self.scene.add(self.camera, pose=np.eye(4))
+        self.scene.add(self.light, pose=self.light_pose_neg)
+        self.scene.add(self.light, pose=self.light_pose_pos)
+
+
 
     def render_front_view(self, verts, bg_img_rgb=None, bg_color=(0, 0, 0, 0)):
-        # Create a scene for each image and render all meshes
-        scene = pyrender.Scene(bg_color=bg_color, ambient_light=np.ones(3) * 0)
-        # Create camera. Camera will always be at [0,0,0]
-        #camera = pyrender.camera.IntrinsicsCamera(fx=self.focal_length, fy=self.focal_length,
-        #                                          cx=self.camera_center[0], cy=self.camera_center[1])
-        scene.add(self.camera, pose=np.eye(4))
 
-        # Create light source
-        #light = pyrender.DirectionalLight(color=[1.0, 1.0, 1.0], intensity=3.0)
-        # for DirectionalLight, only rotation matters
-        #light_pose = trimesh.transformations.rotation_matrix(np.radians(-45), [1, 0, 0])
-        scene.add(self.light, pose=self.light_pose_neg)
-        #light_pose = trimesh.transformations.rotation_matrix(np.radians(45), [0, 1, 0])
-        scene.add(self.light, pose=self.light_pose_pos)
 
-        # Need to flip x-axis
-        #rot = trimesh.transformations.rotation_matrix(np.radians(180), [1, 0, 0])
-        # multiple person
-        #Merge all the meshes into one mesh
-        #num_people = len(verts)
-        if self.same_mesh_color:
-            # Precompute common color
-            common_color = colorsys.hsv_to_rgb(0.6, 0.5, 1.0)
-            mesh_list = []
-            for n in range(len(verts)):
-                m = trimesh.Trimesh(verts[n], self.faces, process=False)
-                m.apply_transform(self.rot)
-                mesh_list.append(m)
-            # Merge all meshes into a single mesh
-            merged_mesh = trimesh.util.concatenate(mesh_list)
-            material = pyrender.MetallicRoughnessMaterial(
-                metallicFactor=0.2,
-                alphaMode='OPAQUE',
-                baseColorFactor=common_color)
-            pyrender_mesh = pyrender.Mesh.from_trimesh(merged_mesh, material=material, wireframe=False)
-            scene.add(pyrender_mesh, name='mesh')
-        else:
-            # Fall back to per-mesh creation with individual colors
-            for n in range(len(verts)):
-                mesh = trimesh.Trimesh(verts[n], self.faces)
-                mesh.apply_transform(self.rot)
-                mesh_color = colorsys.hsv_to_rgb(float(n) / len(verts), 0.5, 1.0)
-                material = pyrender.MetallicRoughnessMaterial(
-                    metallicFactor=0.2,
-                    alphaMode='OPAQUE',
-                    baseColorFactor=mesh_color)
-                pyrender_mesh = pyrender.Mesh.from_trimesh(mesh, material=material, wireframe=False)
-                scene.add(pyrender_mesh, 'mesh')
+        common_color = colorsys.hsv_to_rgb(0.6, 0.5, 1.0)
+        mesh_list = []
+        for n in range(len(verts)):
+            m = trimesh.Trimesh(verts[n], self.faces, process=False)
+            m.apply_transform(self.rot)
+            mesh_list.append(m)
+        # Merge all meshes into a single mesh
+        merged_mesh = trimesh.util.concatenate(mesh_list)
+        material = pyrender.MetallicRoughnessMaterial(
+            metallicFactor=0.2,
+            alphaMode='OPAQUE',
+            baseColorFactor=common_color)
+        pyrender_mesh = pyrender.Mesh.from_trimesh(merged_mesh, material=material, wireframe=False,smooth=False)
+        node=self.scene.add(pyrender_mesh, name='mesh')
 
-        # Alpha channel was not working previously, need to check again
-        # Until this is fixed use hack with depth image to get the opacity
-        color_rgba, depth_map = self.renderer.render(scene)# flags=pyrender.RenderFlags.RGBA)
-        #import ipdb; ipdb.set_trace()
+
+
+        color_rgba, depth_map = self.renderer.render(self.scene,flags=pyrender.RenderFlags.OFFSCREEN)
+        self.scene.remove_node(node)
         color_rgb = color_rgba[:, :, :3]
-        if bg_img_rgb is None:
-            return color_rgb
-        else:
-            mask = depth_map > 0
-            bg_img_rgb[mask] = color_rgb[mask]
-            return bg_img_rgb
+        mask = depth_map > 0
+        bg_img_rgb[mask] = color_rgb[mask]
+        return bg_img_rgb
 
     def render_side_view(self, verts):
         centroid = verts.mean(axis=(0, 1))  # n*6890*3 -> 3
