@@ -19,5 +19,13 @@ COPY requirements.txt .
 # Install Python dependencies from requirements.txt
 RUN pip install -r requirements.txt
 
+#Copy ros setup bash script
+COPY setup_ros.sh .
+
+# Make the setup script executable
+RUN chmod +x setup_ros.sh
+# Run the setup script to install ROS and other dependencies
+RUN ./setup_ros.sh
+
 # Set the command to launch a bash shell
 CMD ["/bin/bash"]
