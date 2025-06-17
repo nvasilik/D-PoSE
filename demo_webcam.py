@@ -69,62 +69,63 @@ def main(args):
     if True:
         all_image_folder = [input_image_folder]
         device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-        mot = MPT(
-            device=device,
-            batch_size=4,
-            display=False,
-            detector_type='yolo',
-            output_format='dict',
-            yolo_img_size=416
-        )
+        torch.set_float32_matmul_precision('medium')
+        with torch.cuda.amp.autocast(), torch.no_grad():
+            mot = MPT(
+                device=torch.device('cuda'),
+                batch_size=4,
+                display=False,
+                detector_type='yolo',
+                output_format='dict',
+                yolo_img_size=416
+            )
+            cap = cv2.VideoCapture(2)
+            cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+            cap.set(cv2.CAP_PROP_FPS,13)
+            cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+            cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+            frameNumber = 0
+            use_bbox_filter = False
+            while True:
+                frameNumber+=1
+                if True:#frameNumber%2==0:
+                    ret, frame = cap.read()          
+                    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-        cap = cv2.VideoCapture(0)
-        cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
-        cap.set(cv2.CAP_PROP_FPS,15)
-        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
-        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
-        frameNumber = 0
-        use_bbox_filter = False
-        while True:
-          frameNumber+=1
-          if True:#frameNumber%2==0:
-            ret, frame = cap.read()          
-            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                    input_tensor = torch.tensor(frame).permute(2, 0, 1).unsqueeze(0) / 255.0
+                    detection = mot.detector(input_tensor.cuda())
 
-            input_tensor = torch.tensor(frame).permute(2, 0, 1).unsqueeze(0) / 255.0
-            detection = mot.detector(input_tensor)
+                    # Concatenate boxes and scores from all predictions at once
+                    if detection:
+                        #import ipdb; ipdb.set_trace()
+                        t = torch.ones(4) * frameNumber
+                        if use_bbox_filter:
+                            boxes = torch.cat([bbox_one_euro_filter(t,pred['boxes']) for pred in detection], dim=0)
+                        else:
+                            boxes = torch.cat([pred['boxes'] for pred in detection], dim=0)
+                        scores = torch.cat([pred['scores'] for pred in detection], dim=0)
+                        # Apply threshold in a vectorized way
+                        mask = scores > 0.7
+                        # Filter and add scores as a new column
+                        filtered_boxes = boxes[mask]
+                        filtered_scores = scores[mask].unsqueeze(1)
+                        # Merge boxes and scores using concatenation
+                        dets = torch.cat([filtered_boxes, filtered_scores], dim=1).cpu().detach().numpy()
+                    else:
+                        dets = np.empty((0, 5))
 
-            # Concatenate boxes and scores from all predictions at once
-            if detection:
-                #import ipdb; ipdb.set_trace()
-                t = torch.ones(4) * frameNumber
-                if use_bbox_filter:
-                    boxes = torch.cat([bbox_one_euro_filter(t,pred['boxes']) for pred in detection], dim=0)
-                else:
-                    boxes = torch.cat([pred['boxes'] for pred in detection], dim=0)
-                scores = torch.cat([pred['scores'] for pred in detection], dim=0)
-                # Apply threshold in a vectorized way
-                mask = scores > 0.7
-                # Filter and add scores as a new column
-                filtered_boxes = boxes[mask]
-                filtered_scores = scores[mask].unsqueeze(1)
-                # Merge boxes and scores using concatenation
-                dets = torch.cat([filtered_boxes, filtered_scores], dim=1).cpu().numpy()
-            else:
-                dets = np.empty((0, 5))
+                    detections = [dets]
+                    detection = mot.prepare_output_detections(detections)
+                    if len(detection[0]) > 0:
 
-            detections = [dets]
-            detection = mot.prepare_output_detections(detections)
-            if len(detection[0]) > 0:
+                        tester.run_on_single_image_tensor(frame, detection)
 
-                tester.run_on_single_image_tensor(frame, detection)
+                    else:
+                        frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+                        cv2.imshow('front', frame)
 
-            else:
-                frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-                cv2.imshow('front', frame)
-
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
+                    if cv2.waitKey(1) & 0xFF == ord('q'):
+                        break
 
     del tester.model
 
