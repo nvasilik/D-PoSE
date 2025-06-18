@@ -2,9 +2,9 @@ version: '3.8'
 services:
   bedlam-depth:
     network_mode: "host"
-    container_name: dpose-0
+    container_name: dpose-2
     image: dpose_ros
-    command: source /opt/ros/rolling/setup.bash && tail -f /dev/null
+    command:  tail -f /dev/null
     volumes:
       - .:/app/dpose
       #- /scratch/spare/nvasilik/data:/app/dpose/data
@@ -12,7 +12,7 @@ services:
       - /dev/video0:/dev/video0
       - /dev/video3:/dev/video3
       #all network interfaces
-      - /dev:/dev
+      #- /dev:/dev
     shm_size: 400G
     deploy:
       resources:
