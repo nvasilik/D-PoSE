@@ -118,7 +118,93 @@ def main(args):
                     detection = mot.prepare_output_detections(detections)
                     if len(detection[0]) > 0:
 
-                        tester.run_on_single_image_tensor(frame, detection)
+                        hmr_output=tester.run_on_single_image_tensor(frame, detection)
+                        '''
+                        from matplotlib import pyplot as plt
+                        def get_smpl_skeleton():
+                            return np.array(
+                                [
+                                    [ 0, 1 ],
+                                    [ 0, 2 ],
+                                    [ 0, 3 ],
+                                    [ 1, 4 ],
+                                    [ 2, 5 ],
+                                    [ 3, 6 ],
+                                    [ 4, 7 ],
+                                    [ 5, 8 ],
+                                    [ 6, 9 ],
+                                    [ 7, 10],
+                                    [ 8, 11],
+                                    [ 9, 12],
+                                    [ 9, 13],
+                                    [ 9, 14],
+                                    [12, 15],
+                                    [13, 16],
+                                    [14, 17],
+                                    [16, 18],
+                                    [17, 19],
+                                    [18, 20],
+                                    [19, 21],
+
+                                ]
+                            )
+                        ax = None
+
+                        def get_colors():
+                            colors = {
+                                'pink': np.array([197, 27, 125]),  # L lower leg
+                                'light_pink': np.array([233, 163, 201]),  # L upper leg
+                                'light_green': np.array([161, 215, 106]),  # L lower arm
+                                'green': np.array([77, 146, 33]),  # L upper arm
+                                'red': np.array([215, 48, 39]),  # head
+                                'light_red': np.array([252, 146, 114]),  # head
+                                'light_orange': np.array([252, 141, 89]),  # chest
+                                'purple': np.array([118, 42, 131]),  # R lower leg
+                                'light_purple': np.array([175, 141, 195]),  # R upper
+                                'light_blue': np.array([145, 191, 219]),  # R lower arm
+                                'blue': np.array([69, 117, 180]),  # R upper arm
+                                'gray': np.array([130, 130, 130]),  #
+                                'white': np.array([255, 255, 255]),  #
+                                'pinkish': np.array([204, 77, 77]),
+                            }
+                            return colors
+                        radius =1
+                        joints = joints[:len(get_smpl_skeleton())+1]
+                        if True:
+                            fig = plt.figure(figsize=(12, 7))
+                            ax = fig.add_subplot(111, projection='3d')
+                            ax.set_aspect('auto')
+                        skeleton = get_smpl_skeleton()
+                        kp_3d = joints
+                        for i, (j1, j2) in enumerate(skeleton):
+                                if kp_3d[j1].shape[0] == 4:
+                                    x, y, z, v = [np.array([kp_3d[j1, c], kp_3d[j2, c]]) for c in range(4)]
+                                else:
+                                    x, y, z = [np.array([kp_3d[j1, c], kp_3d[j2, c]]) for c in range(3)]
+                                    v = [1, 1]
+                                ax.plot(x, y, z, lw=2, c=get_colors()['purple'] / 255)
+                                for j in range(2):
+                                    if v[j] > 0: # if visible
+                                        ax.plot(x[j], y[j], z[j], lw=2, c=get_colors()['blue'] / 255, marker='o')
+                                    else: # nonvisible
+                                        ax.plot(x[j], y[j], z[j], lw=2, c=get_colors()['red'] / 255, marker='x')
+
+                        pelvis_joint = 0
+                        RADIUS = radius  # space around the subject
+                        xroot, yroot, zroot = kp_3d[pelvis_joint, 0], kp_3d[pelvis_joint, 1], kp_3d[pelvis_joint, 2]
+                        ax.set_xlim3d([-RADIUS + xroot, RADIUS + xroot])
+                        ax.set_zlim3d([-RADIUS + zroot, RADIUS + zroot])
+                        ax.set_ylim3d([-RADIUS + yroot, RADIUS + yroot])
+
+                        ax.set_xlabel("x")
+                        ax.set_ylabel("y")
+                        ax.set_zlabel("z")
+                        ax.view_init(-90, -90)
+                        if ax is None:
+                            plt.show()
+                        plt.savefig('skeleton.png')
+                        import ipdb; ipdb.set_trace()
+                        '''
 
                     else:
                         frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)

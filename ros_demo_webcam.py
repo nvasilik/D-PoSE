@@ -12,7 +12,7 @@ from multi_person_tracker import MPT
 from multi_person_tracker import Sort
 #Dataloader
 from torch.utils.data import DataLoader
-#from train.core.tester_smpl import Tester
+from skeleton_msgs.msg import Skeletons, HumanSkeletonHistory, Skeleton, Joint3D#from train.core.tester_smpl import Tester
 #os.environ['PYOPENGL_PLATFORM'] = 'egl'
 #os.environ["DISPLAY"] = ":0"e
 sys.path.append('')
@@ -78,8 +78,8 @@ class MinimalPublisher(Node):
                     device=torch.device('cuda'),
                     batch_size=4,
                     display=False,
-                    detector_type='maskrcnn',
-                    output_format='dict',
+                    detector_type='yolo',
+                    output_format='list',
                     yolo_img_size=416
                 )
                 cap = cv2.VideoCapture(0)
@@ -89,6 +89,7 @@ class MinimalPublisher(Node):
                 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
                 frameNumber = 0
                 use_bbox_filter = False
+                self.tracker = Sort()
                 while True:
                     frameNumber+=1
                     if True:#frameNumber%2==0:
@@ -97,7 +98,6 @@ class MinimalPublisher(Node):
 
                         input_tensor = torch.tensor(frame).permute(2, 0, 1).unsqueeze(0) / 255.0
                         detection = mot.detector(input_tensor.cuda())
-
                         # Concatenate boxes and scores from all predictions at once
                         if detection:
                             #import ipdb; ipdb.set_trace()
@@ -106,6 +106,7 @@ class MinimalPublisher(Node):
                                 boxes = torch.cat([bbox_one_euro_filter(t,pred['boxes']) for pred in detection], dim=0)
                             else:
                                 boxes = torch.cat([pred['boxes'] for pred in detection], dim=0)
+                                #import ipdb; ipdb.set_trace()
                             scores = torch.cat([pred['scores'] for pred in detection], dim=0)
                             # Apply threshold in a vectorized way
                             mask = scores > 0.7
@@ -113,10 +114,16 @@ class MinimalPublisher(Node):
                             filtered_boxes = boxes[mask]
                             filtered_scores = scores[mask].unsqueeze(1)
                             # Merge boxes and scores using concatenation
+
                             dets = torch.cat([filtered_boxes, filtered_scores], dim=1).cpu().detach().numpy()
+                            #import ipdb; ipdb.set_trace()
+                            track_bbs_ids = self.tracker.update(dets)
                         else:
+                            track_bbs_ids = np.empty((0, 5))
                             dets = np.empty((0, 5))
 
+                        print('BBs ids:', track_bbs_ids[:, -1])
+                        #import ipdb; ipdb.set_trace()
                         detections = [dets]
                         detection = mot.prepare_output_detections(detections)
                     if len(detection[0]) > 0:
