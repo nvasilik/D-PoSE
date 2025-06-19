@@ -12,9 +12,13 @@ from multi_person_tracker import MPT
 from multi_person_tracker import Sort
 #Dataloader
 from torch.utils.data import DataLoader
-from skeleton_msgs.msg import Skeletons, HumanSkeletonHistory, Skeleton, Joint3D#from train.core.tester_smpl import Tester
+from skeleton_msgs.msg import Skeletons, Skeleton, Joint3D#from train.core.tester_smpl import Tester
+from aruco.aruco_create import detect_aruco_from_image
 #os.environ['PYOPENGL_PLATFORM'] = 'egl'
 #os.environ["DISPLAY"] = ":0"e
+import tf2_ros
+from geometry_msgs.msg import TransformStamped
+import tf_transformations
 sys.path.append('')
 '''
 import scipy.signal as signal
@@ -46,14 +50,52 @@ def smooth_bbox_params(bbox_params, kernel_size=11, sigma=8):
 
     return torch.tensor(smoothed, dtype=torch.float32, device='cpu') 
 '''
+
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String
+def rotmat_to_quat(R):
+    """Convert a 3x3 rotation matrix to a quaternion (w, x, y, z)."""
+    assert R.shape == (3, 3)
+    trace = np.trace(R)
+
+    if trace > 0:
+        s = 0.5 / np.sqrt(trace + 1.0)
+        w = 0.25 / s
+        x = (R[2, 1] - R[1, 2]) * s
+        y = (R[0, 2] - R[2, 0]) * s
+        z = (R[1, 0] - R[0, 1]) * s
+    else:
+        if R[0, 0] > R[1, 1] and R[0, 0] > R[2, 2]:
+            s = 2.0 * np.sqrt(1.0 + R[0, 0] - R[1, 1] - R[2, 2])
+            w = (R[2, 1] - R[1, 2]) / s
+            x = 0.25 * s
+            y = (R[0, 1] + R[1, 0]) / s
+            z = (R[0, 2] + R[2, 0]) / s
+        elif R[1, 1] > R[2, 2]:
+            s = 2.0 * np.sqrt(1.0 + R[1, 1] - R[0, 0] - R[2, 2])
+            w = (R[0, 2] - R[2, 0]) / s
+            x = (R[0, 1] + R[1, 0]) / s
+            y = 0.25 * s
+            z = (R[1, 2] + R[2, 1]) / s
+        else:
+            s = 2.0 * np.sqrt(1.0 + R[2, 2] - R[0, 0] - R[1, 1])
+            w = (R[1, 0] - R[0, 1]) / s
+            x = (R[0, 2] + R[2, 0]) / s
+            y = (R[1, 2] + R[2, 1]) / s
+            z = 0.25 * s
+
+    return np.array([w, x, y, z])
+
+import math
+
+def degrees_to_radians(deg):
+    return math.radians(deg)
 class MinimalPublisher(Node):
 
     def __init__(self):
         super().__init__('minimal_publisher')
-        self.publisher_ = self.create_publisher(String, 'topic2', 10)
+        self.publisher_ = self.create_publisher(Skeletons, 'humans', 10)
 
         logger.add(
             os.path.join('.', 'demo.log'),
@@ -67,8 +109,10 @@ class MinimalPublisher(Node):
             min_cutoff=0.004,
             beta=0.4,
         )
-
+        self.tf_broadcaster = tf2_ros.TransformBroadcaster(self)
         tester = Tester(args)
+        first_rvec= None
+        first_tvec = None
         if True:
             #all_image_folder = [input_image_folder]
             #device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
@@ -78,11 +122,11 @@ class MinimalPublisher(Node):
                     device=torch.device('cuda'),
                     batch_size=4,
                     display=False,
-                    detector_type='yolo',
+                    detector_type='maskrcnn',
                     output_format='list',
-                    yolo_img_size=416
+                    yolo_img_size=256
                 )
-                cap = cv2.VideoCapture(0)
+                cap = cv2.VideoCapture(4)
                 cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
                 cap.set(cv2.CAP_PROP_FPS,13)
                 cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
@@ -93,11 +137,15 @@ class MinimalPublisher(Node):
                 while True:
                     frameNumber+=1
                     if True:#frameNumber%2==0:
-                        ret, frame = cap.read()          
+                        ret, frame = cap.read()  
                         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                        #Flip frame horizontally
+                        
 
                         input_tensor = torch.tensor(frame).permute(2, 0, 1).unsqueeze(0) / 255.0
                         detection = mot.detector(input_tensor.cuda())
+                        #if first_rvec is None or first_tvec is None:
+                        first_rvec, first_tvec = detect_aruco_from_image(frame)
                         # Concatenate boxes and scores from all predictions at once
                         if detection:
                             #import ipdb; ipdb.set_trace()
@@ -117,12 +165,14 @@ class MinimalPublisher(Node):
 
                             dets = torch.cat([filtered_boxes, filtered_scores], dim=1).cpu().detach().numpy()
                             #import ipdb; ipdb.set_trace()
-                            track_bbs_ids = self.tracker.update(dets)
+                            if dets.shape[0] > 0:
+                                track_bbs_ids = self.tracker.update(dets)
+                                # Update tracker with the detections
                         else:
                             track_bbs_ids = np.empty((0, 5))
                             dets = np.empty((0, 5))
 
-                        print('BBs ids:', track_bbs_ids[:, -1])
+                        #print('BBs ids:', track_bbs_ids[:, -1])
                         #import ipdb; ipdb.set_trace()
                         detections = [dets]
                         detection = mot.prepare_output_detections(detections)
@@ -131,14 +181,113 @@ class MinimalPublisher(Node):
 
                         hmr_output=tester.run_on_single_image_tensor(frame, detection)
                         #import ipdb; ipdb.set_trace()
-                        msg_str=''
-                        for i in range(hmr_output['joints3d'].shape[0]):
-                            msg_str+=str(hmr_output['joints3d'].reshape(-1).tolist())[1:-2]
-                            msg_str+='\n'
+                        Skeletons_ros = Skeletons()
+                        Human = Skeleton()
+                        Skeletons_ros.humans = []
 
-                        msg = String()
-                        msg.data = msg_str
-                        self.publisher_.publish(msg)
+                        #Joint3D[] joints  # Array of joints for this skeleton (one frame)
+                        #uint32 id  # Unique ID for the human
+
+                        #Joints3D:
+                        #float64 x
+                        #float64 y
+                        #float64 z
+                        #Joints3D = hmr_output['joints3d']
+                        hmr_joints = hmr_output['joints3d'][:,0:22,:].cpu().numpy()  # Assuming hmr_output['joints3d'] is a tensor of shape (N, 21, 3)
+                        camera_translation = hmr_output['pred_cam_t'].cpu().numpy()  # Assuming this is a tensor of shape (N, 3)
+                        camera_translation= camera_translation*0.5  # Scale the translation if needed
+                        now = self.get_clock().now().to_msg()
+                        for i in range(len(track_bbs_ids)):
+                            Human = Skeleton()  # <-- Moved this line inside the loop
+                            joints = hmr_joints[i]#tvec.reshape(-1,3)
+                            #Apply camera translation to joints
+                            joints[:, 0] += camera_translation[i, 0]
+                            joints[:, 1] += camera_translation[i, 1]
+                            joints[:, 2] += camera_translation[i, 2]
+                            Human.joints = []
+                            for j,joint in enumerate(joints):
+                                joint3d = Joint3D()
+                                joint3d.x = float(joint[0])
+                                joint3d.y = float(joint[1])
+                                joint3d.z = float(joint[2])
+                                Human.joints.append(joint3d)
+                                if j==0:
+                                    #print('Joint 0:', joint3d.x, joint3d.y, joint3d.z)
+                                    t = TransformStamped()
+                                    t.header.stamp = now
+                                    t.header.frame_id = 'Camera'  # Or 'camera_link' or whatever your base frame is
+                                    t.child_frame_id = f'human_{int(track_bbs_ids[i][-1])}_joint_{j}'
+                                    t.transform.translation.x = joint3d.x
+                                    t.transform.translation.y = joint3d.y
+                                    t.transform.translation.z = joint3d.z
+                                    t.transform.rotation.x = -1.0
+                                    t.transform.rotation.y = 0.0
+                                    t.transform.rotation.z = 0.0
+                                    t.transform.rotation.w = 1.0
+                                    self.tf_broadcaster.sendTransform(t)
+                                Human.id = int(track_bbs_ids[i][-1])
+                                Skeletons_ros.humans.append(Human)
+
+                                #Broadcast rvec and tvec as a transform
+                        #if first_rvec is not None and first_tvec is not None:
+                        from tf_transformations import quaternion_about_axis, quaternion_multiply
+
+                        t = TransformStamped()
+                        t.header.stamp = now
+                        t.header.frame_id = 'base_link'
+                        t.child_frame_id = f'Aruco_marker'
+                        t.transform.translation.x = 0.0#float(tvec[0])
+                        t.transform.translation.y = -0.15#float(tvec[1])
+                        t.transform.translation.z = -0.2#float(tvec[2])
+
+                        t.transform.rotation.x = 0.7071068
+                        t.transform.rotation.y = 0.0
+                        t.transform.rotation.z = 0.0
+                        t.transform.rotation.w =  0.7071068
+                        self.tf_broadcaster.sendTransform(t)
+
+                        if first_rvec is not None and first_tvec is not None:
+                            t = TransformStamped()
+                            t.header.stamp = now
+                            t.header.frame_id = 'Aruco_marker'
+                            t.child_frame_id = f'Camera'
+                            trans = first_tvec
+
+                            #Align the camera with the Aruco marker
+                            t.transform.translation.x = float(trans[0])
+                            t.transform.translation.y = float(-trans[1])
+                            t.transform.translation.z = float(trans[2])
+                            rvec = first_rvec
+                            
+                                                    
+                                                    
+                            # Convert rotation vector to rotation matrix
+                            R = cv2.Rodrigues(first_rvec)[0]
+
+                            # Invert rotation: R_inv = R.T
+                            R_inv = R.T
+
+                            # Invert translation: t_inv = -R.T @ t
+                            tvec = first_tvec.reshape(3)
+                            t_inv = -np.dot(R_inv, tvec)
+
+                            # Fill in the inverted translation
+                            t.transform.translation.x = float(-t_inv[0])
+                            t.transform.translation.y = float(t_inv[1])
+                            t.transform.translation.z = float(t_inv[2])
+
+                            # Convert inverted rotation matrix back to quaternion
+                            quat = rotmat_to_quat(R_inv)
+                            t.transform.rotation.x = float(quat[1])
+                            t.transform.rotation.y = float(quat[2])
+                            t.transform.rotation.z = float(quat[3])
+                            t.transform.rotation.w = float(quat[0])
+
+
+                            self.tf_broadcaster.sendTransform(t)
+                                # Broadcast transform for each joint
+                        #import ipdb; ipdb.set_trace()
+                        self.publisher_.publish(Skeletons_ros)
 
                     else:
                         frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
