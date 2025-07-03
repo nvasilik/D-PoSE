@@ -8,6 +8,8 @@ Create a virtual environment and install all the requirements
 ```
 docker build -t dpose .
 docker compose -p dpose-0 up -d
+export DISPLAY=:0
+xhost +local:
 docker exec -it dpose-0 bash
 pip install git+https://github.com/nikosvasilik/neural_renderer
 cd dpose
