@@ -18,7 +18,7 @@ cd dpose
 ### D-PoSE demo
 
 ```
- python3 demo.py --cfg configs/demo_bedlam_cliff.yaml
+ python3 demo.py --cfg configs/dpose_conf.yaml
 
 ```
 
