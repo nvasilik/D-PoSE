@@ -132,40 +132,6 @@ def download_youtube_clip(url, download_folder):
 #     best_prediction_id = torch.argmin(opt_joint_loss).item()
 #     pred_betas = pred_betas[best_prediction_id].unsqueeze(0)
 #     # pred_betas = pred_betas[best_prediction_id:best_prediction_id+2] # .unsqueeze(0)
-#     # top5_best_idxs = torch.topk(opt_joint_loss, 5, largest=False)[1]
-#     # breakpoint()
-#
-#     start = time.time()
-#     # Run SMPLify optimization initialized from the network prediction
-#     # new_opt_vertices, new_opt_joints, \
-#     # new_opt_pose, new_opt_betas, \
-#     # new_opt_cam_t, \
-#     output, new_opt_joint_loss = smplify(
-#         pred_pose.detach(), pred_betas.detach(),
-#         pred_cam_t.detach(),
-#         0.5 * 224 * torch.ones(batch_size, 2, device=device),
-#         gt_keypoints_2d_orig,
-#     )
-#     new_opt_joint_loss = new_opt_joint_loss.mean(dim=-1)
-#     # smplify_time = time.time() - start
-#     # print(f'Smplify time: {smplify_time}')
-#     # Will update the dictionary for the examples where the new loss is less than the current one
-#     update = (new_opt_joint_loss < opt_joint_loss)
-#
-#     new_opt_vertices = output['verts']
-#     new_opt_cam_t = output['theta'][:,:3]
-#     new_opt_pose = output['theta'][:,3:75]
-#     new_opt_betas = output['theta'][:,75:]
-#     new_opt_joints3d = output['kp_3d']
-#
-#     return_val = [
-#         update, new_opt_vertices.cpu(), new_opt_cam_t.cpu(),
-#         new_opt_pose.cpu(), new_opt_betas.cpu(), new_opt_joints3d.cpu(),
-#         new_opt_joint_loss, opt_joint_loss,
-#     ]
-#
-#     return return_val
-
 
 def trim_videos(filename, start_time, end_time, output_filename):
     command = ['ffmpeg',
@@ -176,7 +142,6 @@ def trim_videos(filename, start_time, end_time, output_filename):
                '-threads', '1',
                '-loglevel', 'panic',
                '"%s"' % output_filename]
-    # command = ' '.join(command)
     subprocess.call(command)
 
 

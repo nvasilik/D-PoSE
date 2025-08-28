@@ -130,7 +130,7 @@ def set_camera_intrinsics_from_opencv(camera, width, height, fx, fy, cx, cy):
     sensor_width_in_mm = camera.data.sensor_width
     camera.data.lens = (fx / width) * sensor_width_in_mm
 
-    # TODO: fx != fy
+    # TODO: Handle different focal lengths for x and y axes (fx != fy)
 
     # Camera principal point
     #
@@ -290,14 +290,6 @@ def render_turntable(object_path, output_fname, numpy_path, wireframe, quads, wi
     # bpy.context.scene.render.engine = 'CYCLES'
     bpy.ops.render.render(write_still=True)
 
-    # if object_path.endswith('_rot.obj'):
-    #     pass
-    # else:
-    #     # Overlay image
-    #     filepath = os.path.join(output_dir, output_file)
-    #     overlay_img = overlay_smooth(filepath.replace('_render.png', '.jpg'), filepath)
-    #     save_image(filepath.replace('_render.png', '_overlay.png'), overlay_img)
-
     # Delete last selected object from scene
     object.select_set(True)
     bpy.ops.object.delete()
@@ -319,10 +311,7 @@ if __name__ == '__main__':
     parser.add_argument('--turntable', action='store_true', help='render with turntable')
     args = parser.parse_args()
 
-    # argv = sys.argv
-    # argv = argv[argv.index("--") + 1:]  # get all args after "--"
-
-    print('Input arguments:', args)  # --> ['example', 'args', '123']
+    print('Input arguments:', args)
 
     if args.turntable:
         assert args.inp.endswith('.obj') is True, 'Single obj file should be provided for turntable.'
@@ -370,10 +359,6 @@ if __name__ == '__main__':
             np_path = mesh_fn.replace('.obj', '.npy')
 
             out_dir = mesh_fn.replace('.obj', '')
-            # if os.path.isdir(out_dir):
-            #     print('Results are already rendered!')
-            #     pass
-            # else:
             os.makedirs(out_dir, exist_ok=True)
 
             frame_idx = 0
