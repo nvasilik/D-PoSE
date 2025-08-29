@@ -2,8 +2,8 @@ version: '3.8'
 services:
   bedlam-depth:
     network_mode: "host"
-    container_name: dpose-2
-    image: dpose_ros
+    container_name: dposewebcam
+    image: dposewebcam
     command:  tail -f /dev/null
     volumes:
       - .:/app/dpose
