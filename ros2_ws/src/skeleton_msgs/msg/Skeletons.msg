@@ -1,1 +1,1 @@
-HumanSkeletonHistory[] humans  # Multiple humans tracked
+Skeleton[] humans  # Multiple humans tracked
