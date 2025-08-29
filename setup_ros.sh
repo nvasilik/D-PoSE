@@ -21,7 +21,9 @@ sudo apt update && sudo apt install -y \
   python3-flake8-docstrings \
   python3-pip \
   python3-pytest-cov \
-  ros-dev-tools
+  ros-dev-tools \
+  ros-rolling-tf-transformations
+
 
 python3 -m pip install -U \
    flake8-blind-except \
@@ -38,3 +40,6 @@ python3 -m pip install -U \
 # Install ROS 2 Humble
 sudo apt update && sudo apt install -y \
     ros-rolling-ros-base 
+
+python3 -m pip install -U \
+    transforms3d==0.4.2
