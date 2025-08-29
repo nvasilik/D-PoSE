@@ -1,31 +1,23 @@
-# Use the official Ubuntu 20.04 base image
+# Base image with CUDA + OpenGL on Ubuntu 20.04
 FROM nvidia/cudagl:11.3.0-devel-ubuntu20.04
 
-# Update the package lists and install Python 3.8, pip, and other dependencies
-RUN apt-get update && \
-    DEBIAN_FRONTEND=noninteractive apt-get install -y \
-    python3.8 python3-pip git libopenexr-dev ffmpeg libturbojpeg tmux wget libxcb-xinerama0 libqt5gui5 && \
-    rm -rf /var/lib/apt/lists/*
+# Install system dependencies, Python, pip, and cleanup
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
+    python3 python3-pip git libopenexr-dev ffmpeg libturbojpeg tmux wget \
+    libxcb-xinerama0 libqt5gui5 \
+    && python3 -m pip install --upgrade --no-cache-dir pip setuptools \
+    && rm -rf /var/lib/apt/lists/*
 
-# Upgrade pip and setuptools
-RUN python3.8 -m pip install --upgrade pip setuptools
-
-# Set the working directory
+# Set working directory
 WORKDIR /app
 
-# Copy the requirements.txt file to the working directory
+# Copy requirements and install Python deps
 COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Install Python dependencies from requirements.txt
-RUN pip install -r requirements.txt
-
-#Copy ros setup bash script
+# Copy ROS setup script and install ROS
 COPY setup_ros.sh .
-
-# Make the setup script executable
-RUN chmod +x setup_ros.sh
-# Run the setup script to install ROS and other dependencies
-RUN ./setup_ros.sh
-
-# Set the command to launch a bash shell
+RUN chmod +x setup_ros.sh && ./setup_ros.sh
+WORKDIR /app/dpose
+# Default command
 CMD ["/bin/bash"]
