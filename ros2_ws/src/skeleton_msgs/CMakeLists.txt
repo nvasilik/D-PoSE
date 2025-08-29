@@ -17,7 +17,6 @@ find_package(builtin_interfaces REQUIRED)
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/Joint3D.msg"
   "msg/Skeleton.msg"
-  "msg/HumanSkeletonHistory.msg"
   "msg/Skeletons.msg"
   DEPENDENCIES builtin_interfaces
 )
