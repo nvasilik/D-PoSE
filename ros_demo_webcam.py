@@ -450,8 +450,11 @@ class PoseEstimationNode(Node):
                     if cv2.waitKey(1) & 0xFF == ord('q'):
                         self.get_logger().info('Quit requested by user')
                         break
-                
                 # Process ROS callbacks
+                    # Required to actually update OpenCV window
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    self.get_logger().info('Quit requested by user')
+                    break
                 rclpy.spin_once(self, timeout_sec=0.001)
                 
         except KeyboardInterrupt:
