@@ -12,6 +12,7 @@ Before running the script, ensure you have:
 3. **Webcam** connected to your system
 4. **D-PoSE model files**:
    - `data/ckpt/paper_arxiv.ckpt`
+   -  [Goodle Drive link ](https://drive.google.com/file/d/1j1ruKg4Wvul8eGMM3KjDkrcjWTFXk6yN/view?usp=sharing)
 5. **Download SMPL and SMPLX body models (READ LICENSE)**:
    - `https://smpl.is.tue.mpg.de/`
    - `https://smpl-x.is.tue.mpg.de/`
