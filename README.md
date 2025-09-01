@@ -1,58 +1,139 @@
-<div align="center">
+# D-PoSE ROS2 Webcam Demo - Usage Instructions
 
-# D-PoSE: Depth as an Intermediate Representation for 3D Human Pose and Shape Estimation
-## [Pre-Print](https://arxiv.org/abs/2410.04889)
-![model image](assets/arch_new.png)
-## Install
-Create a virtual environment and install all the requirements
-```
-docker build -t dpose .
-docker compose -p dpose-0 up -d
-export DISPLAY=:0
-xhost +local:
-docker exec -it dpose-0 bash
-pip install git+https://github.com/nikosvasilik/neural_renderer
-cd dpose
-```
+This cleaned version of `ros_demo_webcam.py` provides an easy-to-use interface for real-time 3D human pose estimation using a webcam.
 
+## Requirements
 
+Before running the script, ensure you have:
 
-### D-PoSE demo
+1. **Docker** installed and properly configured
+2. **CUDA-capable GPU** for optimal performance
+5. **NVIDIA Container Toolkit** installed
+3. **Webcam** connected to your system
+4. **D-PoSE model files**:
+   - `data/ckpt/paper_arxiv.ckpt`
+   -  [Google Drive link ](https://drive.google.com/file/d/1j1ruKg4Wvul8eGMM3KjDkrcjWTFXk6yN/view?usp=sharing)
+5. **Download SMPL and SMPLX body models (READ LICENSE)**:
+   - `https://smpl.is.tue.mpg.de/`
+   - `https://smpl-x.is.tue.mpg.de/`
+## Basic Usage
 
-```
- python3 demo.py --cfg configs/dpose_conf.yaml
-
-```
-
-
-## Evaluation
-Checkpoint and more instructions coming soon.
-Default dataset for evauluation is 3DPW.
-Change dpose_conf.yaml VAL_DS value to change the testing dataset.
-```
- python3 train.py --cfg configs/dpose_conf.yaml --ckpt data/ckpt/paper.ckpt --test
-
+### Build Image and run a container
+```bash
+./run_dpose.sh
 ```
 
-## Training
-```
- python3 train.py --cfg configs/dpose_conf.yaml
-```
-
-## Qualitative Results
-![qual image](assets/qual.png)
-# Citation
-```
-@article{vasilikopoulos2024d,
-  title={D-PoSE: Depth as an Intermediate Representation for 3D Human Pose and Shape Estimation},
-  author={Vasilikopoulos, Nikolaos and Drosakis, Drosakis and Argyros, Antonis},
-  journal={arXiv preprint arXiv:2410.04889},
-  year={2024}
-}
+### Simple Usage (with defaults)
+```bash
+python3 ros_demo_webcam.py
 ```
 
+### Common Usage Examples
 
-# References
-We benefit from many great resources including but not limited to [BEDLAM](https://github.com/pixelite1201/BEDLAM),[SMPL-X](https://smpl-x.is.tue.mpg.de/),[TokenHMR](https://github.com/saidwivedi/TokenHMR),[SMPL](https://smpl.is.tue.mpg.de), [PARE](https://gitlab.tuebingen.mpg.de/mkocabas/projects/-/tree/master/pare),[ReFit](https://github.com/yufu-wang/ReFit) ,[CLIFF](https://github.com/huawei-noah/noah-research/tree/master/CLIFF), [AGORA](https://agora.is.tue.mpg.de), [PIXIE](https://pixie.is.tue.mpg.de), [HRNet](https://github.com/leoxiaobin/deep-high-resolution-net.pytorch).
+```bash
+# Use external USB camera (camera ID 1)
+python3 ros_demo_webcam.py --camera-id 1
 
+# Enable live video display window
+python3 ros_demo_webcam.py --display
 
+# Use different camera resolution
+python3 ros_demo_webcam.py --width 1920 --height 1080
+
+# Enable ArUco marker detection for camera calibration
+python3 ros_demo_webcam.py --use-aruco
+
+# Use custom model configuration
+python3 ros_demo_webcam.py --cfg my_config.yaml --ckpt my_model.ckpt
+
+# Lower detection threshold for more sensitive detection
+python3 ros_demo_webcam.py --detection-threshold 0.5
+
+# Combine multiple options
+python3 ros_demo_webcam.py --camera-id 1 --display --use-aruco --fps 30
+```
+
+## Command Line Options
+
+### Essential Options
+- `--camera-id`: Camera device ID (default: 0)
+- `--display`: Show live video window (use 'q' to quit)
+- `--cfg`: Path to model configuration file
+- `--ckpt`: Path to model checkpoint file
+
+### Camera Configuration
+- `--width`: Camera width in pixels (default: 1280)
+- `--height`: Camera height in pixels (default: 720)  
+- `--fps`: Frame rate (default: 13)
+
+### Processing Options
+- `--detection-threshold`: Person detection confidence (default: 0.7)
+- `--detector`: Detector type - 'yolo' or 'maskrcnn' (default: maskrcnn)
+
+### Additional Features
+- `--use-aruco`: Enable ArUco marker detection
+- `--output-folder`: Directory for log files (default: ./logs)
+
+## Getting Help
+
+```bash
+# View all available options with descriptions
+python3 ros_demo_webcam.py --help
+```
+
+## ROS2 Topics Published
+
+The script publishes to the following ROS2 topics:
+
+- `/humans` (skeleton_msgs/Skeletons): 3D skeleton data for all detected persons
+- **TF Transforms**: Joint positions as transforms for visualization in RViz
+
+## Troubleshooting
+
+### Common Issues
+
+**Camera not found:**
+```
+Error: Cannot open camera 0
+```
+Solution: Try different camera IDs (--camera-id 1, 2, etc.) or check camera connections.
+
+**CUDA not available:**
+```
+Warning: CUDA not available, using CPU (will be slower)
+```
+Solution: Install CUDA drivers and PyTorch with CUDA support, or accept slower CPU processing.
+
+**Model files not found:**
+```
+Required file not found: data/ckpt/paper_arxiv.ckpt
+```
+Solution: Download the model checkpoint as described in the main README.md
+
+**ROS2 not configured:**
+```
+ModuleNotFoundError: No module named 'rclpy'
+```
+Solution: Source your ROS2 setup: `source /opt/ros/humble/setup.bash`
+
+### Performance Tips
+
+1. **Use CUDA**: Ensure PyTorch is installed with CUDA support
+2. **Adjust resolution**: Lower camera resolution for better FPS
+3. **Adjust detection threshold**: Higher threshold = fewer false positives but may miss some people
+4. **Close video display**: Disable `--display` for better performance in production
+
+## Safety Notes
+
+- Press 'q' in the video window to quit safely
+- Use Ctrl+C in terminal as backup to stop the program
+- Camera LED will turn off when program exits properly
+
+## Integration with RViz
+
+To visualize the pose estimation results:
+
+1. Launch RViz: `rviz2`
+2. Add TF display to see joint transforms
+3. Set fixed frame to "Camera" or "base_link"
+4. The script publishes transforms for all detected human joints
