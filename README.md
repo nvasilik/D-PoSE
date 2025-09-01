@@ -12,7 +12,9 @@ Before running the script, ensure you have:
 3. **Webcam** connected to your system
 4. **D-PoSE model files**:
    - `data/ckpt/paper_arxiv.ckpt`
-
+5. **Download SMPL and SMPLX body models (READ LICENSE)**:
+   - `https://smpl.is.tue.mpg.de/`
+   - `https://smpl-x.is.tue.mpg.de/`
 ## Basic Usage
 
 ### Build Image and run a container
