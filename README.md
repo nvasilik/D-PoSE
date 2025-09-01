@@ -7,16 +7,16 @@ This cleaned version of `ros_demo_webcam.py` provides an easy-to-use interface f
 Before running the script, ensure you have:
 
 1. **Docker** installed and properly configured
-2. **CUDA-capable GPU** for optimal performance
-5. **NVIDIA Container Toolkit** installed
-3. **Webcam** connected to your system
-4. **D-PoSE model files**:
+2. **NVIDIA Container Toolkit** installed
+   - `CUDA GPU required`
+4. **Webcam** connected to your system
+5. **D-PoSE model files**:
    - `data/ckpt/paper_arxiv.ckpt`
    -  [Google Drive link ](https://drive.google.com/file/d/1j1ruKg4Wvul8eGMM3KjDkrcjWTFXk6yN/view?usp=sharing)
-5. **Register for SMPL and SMPLX body models (READ LICENSE)**:
+6. **Register for SMPL and SMPLX body models (READ LICENSE)**:
    - `https://smpl.is.tue.mpg.de/`
    - `https://smpl-x.is.tue.mpg.de/`
-6. **Download SMPL and SMPLX models using the provided script**:
+7. **Download SMPL and SMPLX models using the provided script**:
    - `./download_body_models.sh`
 
 ### Build Image and run a container
