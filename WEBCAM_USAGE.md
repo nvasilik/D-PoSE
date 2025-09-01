@@ -6,15 +6,19 @@ This cleaned version of `ros_demo_webcam.py` provides an easy-to-use interface f
 
 Before running the script, ensure you have:
 
-1. **ROS2 (Humble or later)** installed and properly configured
+1. **Docker** installed and properly configured
 2. **CUDA-capable GPU** for optimal performance
+5. **NVIDIA Container Toolkit** installed
 3. **Webcam** connected to your system
 4. **D-PoSE model files**:
-   - `configs/dpose_conf.yaml`
    - `data/ckpt/paper_arxiv.ckpt`
-5. **Python dependencies** (see `requirements.txt`)
 
 ## Basic Usage
+
+### Build Image and run a container
+```bash
+./run_dpose.sh
+```
 
 ### Simple Usage (with defaults)
 ```bash
@@ -130,5 +134,3 @@ To visualize the pose estimation results:
 2. Add TF display to see joint transforms
 3. Set fixed frame to "Camera" or "base_link"
 4. The script publishes transforms for all detected human joints
-
-Enjoy using the cleaned D-PoSE webcam demo! 🎉
