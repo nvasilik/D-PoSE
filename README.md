@@ -13,10 +13,11 @@ Before running the script, ensure you have:
 4. **D-PoSE model files**:
    - `data/ckpt/paper_arxiv.ckpt`
    -  [Google Drive link ](https://drive.google.com/file/d/1j1ruKg4Wvul8eGMM3KjDkrcjWTFXk6yN/view?usp=sharing)
-5. **Download SMPL and SMPLX body models (READ LICENSE)**:
+5. **Register for SMPL and SMPLX body models (READ LICENSE)**:
    - `https://smpl.is.tue.mpg.de/`
    - `https://smpl-x.is.tue.mpg.de/`
-## Basic Usage
+6. **Download SMPL and SMPLX models using the provided script**:
+   - `./download_body_models.sh`
 
 ### Build Image and run a container
 ```bash
