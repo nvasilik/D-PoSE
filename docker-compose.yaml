@@ -1,6 +1,5 @@
-version: '3.8'
 services:
-  bedlam-depth:
+  dposewebcam:
     network_mode: "host"
     container_name: dposewebcam
     image: dposewebcam

@@ -3,7 +3,7 @@ set -e
 
 # --- CONFIGURATION ---
 COMPOSE_FILE="docker-compose.yaml"
-SERVICE_NAME="bedlam-depth"
+SERVICE_NAME="dposewebcam"
 CONTAINER_NAME="dposewebcam"
 
 # --- CHECKS ---
@@ -81,7 +81,8 @@ while true; do
         case $choice in
             1)
                 echo "🔨 Building Docker image..."
-                docker compose -f "$COMPOSE_FILE" build "$SERVICE_NAME"
+                docker build -t "$SERVICE_NAME" .
+                echo "✅ Build completed."
                 ;;
             2)
                 echo "🚀 Starting container..."
