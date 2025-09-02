@@ -4,7 +4,15 @@
 ## [Pre-Print](https://arxiv.org/abs/2410.04889)
 ![model image](assets/arch_new.png)
 ## Install
-Create a virtual environment and install all the requirements
+1. **Docker** installed and properly configured
+2. **NVIDIA Container Toolkit** installed
+   - `CUDA GPU required`
+3. **D-PoSE model files**:
+   - `data/ckpt/paper_arxiv.ckpt`
+   -  [Google Drive link ](https://drive.google.com/file/d/1j1ruKg4Wvul8eGMM3KjDkrcjWTFXk6yN/view?usp=sharing)
+4. **Register for SMPL and SMPLX body models (READ LICENSE)**:
+   - `https://smpl.is.tue.mpg.de/`
+   - `https://smpl-x.is.tue.mpg.de/`
 ```
 docker build -t dpose .
 docker compose -p dpose-0 up -d
