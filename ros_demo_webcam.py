@@ -214,7 +214,7 @@ class PoseEstimationNode(Node):
                 device=device,
                 batch_size=4,
                 display=False,
-                detector_type='maskrcnn',
+                detector_type='yolo',
                 output_format='list',
                 yolo_img_size=256
             )
@@ -545,7 +545,7 @@ def parse_arguments():
     
     # Detector configuration (for compatibility)
     parser.add_argument(
-        '--detector', type=str, default='maskrcnn', choices=['yolo', 'maskrcnn'],
+        '--detector', type=str, default='yolo', choices=['yolo', 'maskrcnn'],
         help='Object detector to use for person detection'
     )
     parser.add_argument(
