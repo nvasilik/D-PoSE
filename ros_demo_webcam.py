@@ -270,7 +270,11 @@ class PoseEstimationNode(Node):
             
             if len(detection[0]) > 0:
                 # Run pose estimation
-                hmr_output = self.tester.run_on_single_image_tensor(frame, detection)
+                if self.args.render:
+                    renderMesh = True
+                else:
+                    renderMesh = False
+                hmr_output = self.tester.run_on_single_image_tensor(frame, detection,render=renderMesh)
                 return track_bbs_ids, hmr_output
             
         return None, None
@@ -551,6 +555,12 @@ def parse_arguments():
     parser.add_argument(
         '--yolo-img-size', type=int, default=256,
         help='Input image size for YOLO detector'
+    )
+    
+    #Render 3d Mesh
+    parser.add_argument(
+        '--render', action='store_true',
+        help='Render the 3D mesh on the OpenCV window'
     )
     
     # Deprecated/unused options (kept for compatibility)

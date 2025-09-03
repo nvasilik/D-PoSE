@@ -220,7 +220,7 @@ class Tester:
         #renderer.delete()
         
     @torch.no_grad()
-    def run_on_single_image_tensor(self, image_tensor, detections):
+    def run_on_single_image_tensor(self, image_tensor, detections,render=False):
         dets = detections
 
         # Load the image tensor and get its dimensions
@@ -286,9 +286,13 @@ class Tester:
         #    faces=self.smplx_cam_head.smplx.faces,
         #    same_mesh_color=False
         #)
-        
-        front_view = self.renderer.render_front_view(pred_vertices_array, bg_img_rgb=img)
-        cv2.imshow('front', img[:, :, ::-1])
+        if render:
+            front_view = self.renderer.render_front_view(pred_vertices_array, bg_img_rgb=img.copy())
+            cv2.imshow('front', front_view[:, :, ::-1])
+        else:
+            cv2.imshow('front', img[:, :, ::-1])
+            
+        #cv2.imshow('front', img[:, :, ::-1])
         return hmr_output
         #side_view = self.renderer.render_side_view(pred_vertices_array)
         #cv2.imshow('side', side_view[:, :, ::-1])
