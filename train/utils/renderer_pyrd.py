@@ -13,8 +13,8 @@ class Renderer(object):
                  same_mesh_color=True):
         os.environ['PYOPENGL_PLATFORM'] = 'egl'
         
-        self.renderer = pyrender.OffscreenRenderer(viewport_width=1280,
-                                                   viewport_height=720,
+        self.renderer = pyrender.OffscreenRenderer(viewport_width=1920,
+                                                   viewport_height=1080,
                                                    point_size=1.0)
         self.camera_center = [img_w // 2, img_h // 2]
         self.focal_length = focal_length
