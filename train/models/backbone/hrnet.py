@@ -335,6 +335,10 @@ class PoseHighResolutionNet(nn.Module):
         self.upsample_stage_3 = self._make_upsample_layer(2, num_channel=self.stage3_cfg['NUM_CHANNELS'][-1])
         self.upsample_stage_4 = self._make_upsample_layer(3, num_channel=self.stage4_cfg['NUM_CHANNELS'][-1])
         
+        self.downsample_stage_1 = self._make_downsample_layer(3, num_channel=self.stage2_cfg['NUM_CHANNELS'][0])
+        self.downsample_stage_2 = self._make_downsample_layer(2, num_channel=self.stage2_cfg['NUM_CHANNELS'][-1])
+        self.downsample_stage_3 = self._make_downsample_layer(1, num_channel=self.stage3_cfg['NUM_CHANNELS'][-1])
+       
     def _make_transition_layer(
             self, num_channels_pre_layer, num_channels_cur_layer):
         num_branches_cur = len(num_channels_cur_layer)
@@ -493,7 +497,12 @@ class PoseHighResolutionNet(nn.Module):
         x2 = self.upsample_stage_3(x[2])
         x3 = self.upsample_stage_4(x[3])
         upsampled = torch.cat([x[0], x1, x2, x3], 1)
-        return splited,upsampled
+        
+        d1 = self.downsample_stage_1(x[0])
+        d2 = self.downsample_stage_2(x[1])
+        d3 = self.downsample_stage_3(x[2])
+        downsampled = torch.cat([d1, d2, d3, x[3]], 1)
+        return splited,upsampled,downsampled
 
     def init_weights(self, pretrained=''):
         logger.info('=> init weights from normal distribution')

@@ -38,6 +38,7 @@ class HMR(nn.Module):
             self.smpl = SMPLXCamHead(img_res=img_res)
         if hparams.DATASET.USE_DEPTH:
             self.depth_decoder = UNET(depth=True)
+            self.avgpool_feats = nn.AdaptiveAvgPool2d((1))
 
         if hparams.DATASET.USE_SEGM:
             self.segmentation_decoder = UNET(depth=False)
@@ -89,13 +90,15 @@ class HMR(nn.Module):
             bbox_info = bbox_info.cuda().float()
 
             if self.hparams.DATASET.USE_SEGM:
-                features,upsampled_feature= self.backbone(images)
+                features,upsampled_feature,downsampled= self.backbone(images)
                 segmentation,_ = self.segmentation_decoder(features)
+                downsampled= self.avgpool_feats(downsampled)
                 cam_shape_feat = upsampled_feature
                 if not self.hparams.DATASET.USE_DEPTH:
                     attention_pose = self.attention(upsampled_feature,segmentation[:,1:,:,:],None)
                     attention_cam_shape = self.attention(cam_shape_feat,segmentation[:,1:,:,:],None)
                     hmr_output = self.head(attention_pose,attention_cam_shape,attention_cam_shape,bbox_info)
+                    hmr_output['body_feat'] = downsampled.reshape(batch_size,-1)
                 else:
                     depth,depth_feats = self.depth_decoder(features)
                     orig_depth = depth.clone()
@@ -104,12 +107,14 @@ class HMR(nn.Module):
                         attention_pose = self.attention(upsampled_feature,segmentation[:,1:,:,:],depth[:,1:,:,:])
                         attention_cam_shape = self.attention(cam_shape_feat,segmentation[:,1:,:,:],depth[:,1:,:,:])
                         hmr_output = self.head(attention_pose,attention_cam_shape,attention_cam_shape,bbox_info,depth_feats)
+                        hmr_output['body_feat'] = downsampled.reshape(batch_size,-1)
                     else:
                         upsampled_feature = torch.cat([upsampled_feature,depth_feats],dim=1)
                         attention_pose = self.attention(upsampled_feature,segmentation[:,1:,:,:],depth[:,1:,:,:])
                         cam_shape_feat = torch.cat([cam_shape_feat,depth_feats],dim=1)
                         attention_cam_shape = self.attention(cam_shape_feat,segmentation[:,1:,:,:],depth[:,1:,:,:])
                         hmr_output = self.head(attention_pose,attention_cam_shape,attention_cam_shape,bbox_info,None)
+                        hmr_output['body_feat'] = downsampled.reshape(batch_size,-1)
             else:
                 features,_= self.backbone(images)
                 hmr_output = self.head(features, bbox_info=bbox_info,depth_feats=None)
