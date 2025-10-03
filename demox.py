@@ -44,9 +44,11 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--cfg', type=str, default='configs/demo_bedlam_cliff_x.yaml',
+    parser.add_argument('--cfg', type=str, default='configs/dpose_conf_hands.yaml',
                         help='config file that defines model hyperparams')
-
+    
+    parser.add_argument('--ckpt', type=str,
+                        help='checkpoint path')
     parser.add_argument('--hands_ckpt', type=str, default='data/ckpt/bedlam_cliff_x.ckpt',
                         help='checkpoint path')
     parser.add_argument('--body_ckpt', type=str, default='data/ckpt/paper_arxiv.ckpt',

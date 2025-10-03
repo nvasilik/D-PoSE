@@ -66,4 +66,4 @@ git+https://github.com/jamesbowman/openexrpython.git
 wandb
 ipdb
 torch
-git+https://github.com/nvasilik/neural_renderer.git
+#git+https://github.com/nvasilik/neural_renderer.git

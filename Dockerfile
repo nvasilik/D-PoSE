@@ -16,15 +16,15 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy ROS setup script and install ROS
-COPY setup_ros.sh .
-RUN chmod +x setup_ros.sh && ./setup_ros.sh
-WORKDIR /app/dpose
+#COPY setup_ros.sh .
+#RUN chmod +x setup_ros.sh && ./setup_ros.sh
+#WORKDIR /app/dpose
 #source /opt/ros/rolling/setup.bash 
-RUN echo "source /opt/ros/rolling/setup.bash" >> ~/.bashrc
+#RUN echo "source /opt/ros/rolling/setup.bash" >> ~/.bashrc
 
-WORKDIR /app/dpose/ros2_ws
-RUN colcon build
-RUN echo "source /app/dpose/ros2_ws/install/setup.bash" >> ~/.bashrc
+#WORKDIR /app/dpose/ros2_ws
+#RUN colcon build
+#RUN echo "source /app/dpose/ros2_ws/install/setup.bash" >> ~/.bashrc
 WORKDIR /app/dpose
 
 # Default command

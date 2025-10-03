@@ -92,7 +92,7 @@ class HMR(nn.Module):
             if self.hparams.DATASET.USE_SEGM:
                 features,upsampled_feature,downsampled= self.backbone(images)
                 segmentation,_ = self.segmentation_decoder(features)
-                downsampled= self.avgpool_feats(downsampled)
+                downsampled= self.avgpool_feats(upsampled_feature)
                 cam_shape_feat = upsampled_feature
                 if not self.hparams.DATASET.USE_DEPTH:
                     attention_pose = self.attention(upsampled_feature,segmentation[:,1:,:,:],None)

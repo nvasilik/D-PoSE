@@ -39,7 +39,6 @@ class SMPLXTrainer(pl.LightningModule):
     def __init__(self, hparams, config_tune=None):
         super(SMPLXTrainer, self).__init__()
         self.hparams.update(hparams)
-
         self.body_model = HMR(
             backbone=self.hparams.MODEL.BACKBONE,
             img_res=self.hparams.DATASET.IMG_RES,
@@ -175,6 +174,13 @@ class Tester:
 
     def _load_pretrained_model(self):
         # ========= Load pretrained weights ========= #
+        logger.info(f'Loading pretrained model from {self.args.ckpt}')
+        ckpt = torch.load(self.args.ckpt)['state_dict']
+        #import ipdb; ipdb.set_trace()
+        load_pretrained_model(self.model, ckpt, overwrite_shape_mismatch=True, remove_lightning=True)
+        logger.info(f'Loaded pretrained weights from \"{self.args.ckpt}\"')
+        '''
+    
         logger.info(f'Loading pretrained hands model from {self.args.hands_ckpt}')
         logger.info(f'Loading pretrained body model from {self.args.body_ckpt}')
         #hands_ckpt = torch.load(self.args.hands_ckpt)['state_dict']
@@ -186,6 +192,7 @@ class Tester:
         hands_ckpt = torch.load(self.args.hands_ckpt)['state_dict']
         self.model.hand_model.load_state_dict(strip_prefix_if_present(hands_ckpt, prefix='hand_model'), strict=False)
         self.model.fullbody_model.load_state_dict(strip_prefix_if_present(hands_ckpt, prefix='fullbody_model'), strict=False)
+        '''
         #import ipdb; ipdb.set_trace()
         #self.model.fullbody_model.load_state_dict(strip_prefix_if_present(hands_ckpt, prefix='fullbody_model'), strict=False)
         '''
@@ -289,7 +296,6 @@ class Tester:
                     img_w = torch.tensor(orig_width).repeat(batch_size).cuda().float()
                     focal_length = ((img_w * img_w + img_h * img_h) ** 0.5).cuda().float()
                     if not self.hparams.DATASET.USE_DEPTH:
-
                         hmr_output = self.model.body_model(inp_images, bbox_center=bbox_center, bbox_scale=bbox_scale, img_w=img_w, img_h=img_h)
                     else:
                         hmr_output,orig_depth,_,_,segmentation = self.model.body_model(inp_images, bbox_center=bbox_center, bbox_scale=bbox_scale, img_w=img_w, img_h=img_h)
